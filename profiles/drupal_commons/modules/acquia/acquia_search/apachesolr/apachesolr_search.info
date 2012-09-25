@@ -1,0 +1,15 @@
+name = Apache Solr search
+description = Search with Solr
+dependencies[] = search
+dependencies[] = apachesolr
+package = Apache Solr
+core = "6.x"
+php = 5.1.4
+
+
+; Information added by drush on 2012-08-13
+version = "6.x-1.x"
+core = "6.x"
+project = "apachesolr"
+datestamp = "1344874395"
+

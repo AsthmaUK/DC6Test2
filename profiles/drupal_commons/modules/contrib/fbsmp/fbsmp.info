@@ -1,0 +1,13 @@
+name = Facebook-style Micropublisher
+description = Allows users to easily publish various kinds of content (links, photos, videos, etc) in a stream like on Facebook.
+core = 6.x
+package = Facebook-style Statuses
+dependencies[] = facebook_status
+dependencies[] = ctools
+
+; Information added by drush on 2012-08-13
+version = "6.x-2.0+6-dev"
+core = "6.x"
+project = "fbsmp"
+datestamp = "1344874236"
+

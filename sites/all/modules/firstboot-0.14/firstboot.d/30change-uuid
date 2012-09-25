@@ -1,0 +1,88 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+my %mountdev;
+my %replacement;
+
+sub fixfile
+{
+    my $fn = shift @_;
+    return unless (-f $fn);
+    my $c = 0;
+    open(FILE,$fn) || die "Can't read $fn: $!";
+    my $f="";
+    my $g="";
+    while(<FILE>)
+    {
+	my $line=$_;
+	$g.=$line;
+	foreach my $s (keys %replacement)
+	{
+	    my $n = $replacement{$s};
+	    $line =~ s/$s/$n/g;
+	}
+	$f.=$line;
+    }
+    close(FILE);
+    return if ($f eq $g);
+    print STDERR "Changing UUIDs in $fn\n";
+    open(FILE,">$fn") || die "Can't write $fn: $!";
+    print FILE $f;
+    close(FILE);
+}
+
+opendir(DEVD,"/dev/disk/by-uuid") || die "Cannot open disk dir: $!";
+my $xvd = (-b "/dev/xvda") || (-b "/dev/vda");
+my @ud = readdir(DEVD);
+foreach my $uuid (@ud)
+{
+    my $link = "/dev/disk/by-uuid/$uuid"; 
+    if (-l $link)
+    {
+	my $dest = readlink($link);
+	$dest =~ s,(.*)/([^/]+)$,$2,;
+	# Only tweak the boot drive, xvdan, vdan, sdan, hdan (debian having an overdeveloped sense of history)
+	if ( ($xvd && ($dest =~ /^(x)?vda\d+$/ )) || ((!$xvd) && ($dest =~ /^[hs]da\d+$/ )) )
+	{
+	    my $new=`uuidgen`;
+	    chomp($new);
+	    $replacement{$uuid}=$new;
+	    printf STDERR "UUID change old=%s new=%s\n",$uuid,$new;
+	    system("tune2fs /dev/disk/by-uuid/$uuid -U $new");
+
+	    # If this is the boot partition, we need to make some extra changes
+	    if ($dest=~/da1$/)
+	    {
+		# fix up bootloader
+		$replacement{'^# kopt=root=\S+\b'}='# kopt=root=UUID='.$new;
+		# $replacement{' root=UUID=\S+ '}=' root=UUID='.$new." ";
+		# fix up possibly out of sync fstab which otherwise confuses updatedate-grub
+		$replacement{'^UUID=\S+\s+\/\s+ext'}='UUID='.$new."\t\/\t\text";
+	    }
+	}
+    }
+}
+close (DEVD);
+
+fixfile("/etc/fstab");
+fixfile("/boot/grub/menu.lst");
+#fixfile("/boot/grub/grub.cfg");
+fixfile("/etc/default/grub");
+if (opendir(GRUBD, "/etc/grub.d"))
+{
+    my @fl = readdir(GRUBD);
+    foreach my $f (@fl)
+    {
+	fixfile("/etc/grub.d/$f");
+    }
+    close(GRUBD);
+}
+
+# Grub v1 wants devicemap rebuilt. Not sure if this is a good plan on v2
+if (-e "/boot/grub/menu.lst")
+{
+    print STDERR "Rebuilding device map\n";
+    system("grub-mkdevicemap");
+}
+system("update-grub");

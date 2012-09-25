@@ -1,0 +1,23 @@
+#!/bin/sh -e
+
+BASE=/etc/firstboot.d
+STATE=$BASE/state
+DONE=$STATE/done
+CHAIN=/etc/rc.local.diverted
+
+# execute firstboot.d commands only once
+# rm the 'done' marker file to re-run
+
+if [ ! -e $DONE ]; then
+    /bin/run-parts $BASE
+    mkdir -p $STATE
+    touch $DONE
+fi
+
+# chain load any previously customised /etc/rc.local
+# (dpkg-diverted by package preinst script)
+
+if [ -x $CHAIN ]; then
+    $CHAIN
+fi
+exit 0

@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+case "$1" in
+    install|upgrade)
+        dpkg-divert \
+            --package firstboot \
+            --divert /etc/rc.local.diverted \
+            --rename /etc/rc.local || true
+        ;;
+esac

